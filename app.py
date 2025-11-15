@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from PIL import Image
+from dotenv import load_dotenv
 import json
 
 UPLOAD_FOLDER = os.path.join('instance', 'uploads')
@@ -16,13 +17,15 @@ ALLOWED_EXT = set(['png','jpg','jpeg','gif','pdf','doc','docx'])
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+load_dotenv()
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'this-should-be-changed')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sri_vinayaga.db'
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     db.init_app(app)
@@ -175,6 +178,42 @@ def create_app():
         flash("Admin account deleted permanently.", "info")
         return redirect(url_for('home'))
 
+    @app.route("/admin/forgot-password", methods=["GET", "POST"])
+    def admin_forgot_password():
+        if request.method == "POST":
+            email = request.form["email"]
+            new_password = request.form["new_password"]
+            confirm_password = request.form["confirm_password"]
+
+            if new_password != confirm_password:
+                flash("Passwords do not match!", "error")
+                return redirect(url_for("admin_forgot_password"))
+
+            admin = Admin.query.filter_by(email=email).first()
+            if not admin:
+                flash("Admin email not found!", "error")
+                return redirect(url_for("admin_forgot_password"))
+
+            admin.password_hash = generate_password_hash(new_password)   # FIXED
+            db.session.commit()
+
+            flash("Password changed successfully!", "success")
+            return redirect(url_for("admin_login"))
+
+        return render_template("admin_forgot_password.html")
+
+
+    @app.route("/admin/customers")
+    def admin_customers():
+        if session.get('role') != 'admin':
+            flash("Unauthorized access!", "danger")
+            return redirect(url_for('admin_login'))
+
+        customers = Customer.query.all()
+        return render_template("admin_customers.html", customers=customers)
+
+
+
     # admin change order status
     @app.route('/admin/order/<int:order_id>/status', methods=['POST'])
     @admin_required
@@ -203,6 +242,25 @@ def create_app():
         db.session.commit()
         flash("Order deleted", "info")
         return redirect(url_for('admin_dashboard'))
+    
+    @app.route("/admin/delete-customer/<int:customer_id>", methods=["POST"])
+    def delete_customer(customer_id):
+        if session.get("role") != "admin":
+            flash("Unauthorized access!", "danger")
+            return redirect(url_for("admin_login"))
+
+        customer = Customer.query.get(customer_id)
+
+        if not customer:
+            flash("Customer not found!", "error")
+            return redirect(url_for("admin_customers"))
+
+        db.session.delete(customer)
+        db.session.commit()
+
+        flash("Customer deleted successfully!", "success")
+        return redirect(url_for("admin_customers"))
+
 
     # billing page for admin
     @app.route('/admin/billing/<int:order_id>', methods=['GET','POST'])
@@ -350,8 +408,6 @@ def create_app():
 
         c.save()
 
-
-
     # serve uploaded files for download viewing
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
@@ -488,6 +544,31 @@ def create_app():
         session.clear()
         flash("Your account has been permanently deleted.", "info")
         return redirect(url_for('home'))
+
+    @app.route("/customer/forgot-password", methods=["GET", "POST"])
+    def customer_forgot_password():
+        if request.method == "POST":
+            email = request.form["email"]
+            new_password = request.form["new_password"]
+            confirm_password = request.form["confirm_password"]
+
+            if new_password != confirm_password:
+                flash("Passwords do not match!", "error")
+                return redirect(url_for("customer_forgot_password"))
+
+            customer = Customer.query.filter_by(email=email).first()
+            if not customer:
+                flash("Email not registered!", "error")
+                return redirect(url_for("customer_forgot_password"))
+
+            customer.password_hash = generate_password_hash(new_password)  # FIXED
+            db.session.commit()
+
+            flash("Password updated successfully!", "success")
+            return redirect(url_for("customer_login"))
+
+        return render_template("customer_forgot_password.html")
+
 
 
     @app.route('/customer/order/<int:order_pk>/delete', methods=['POST'])

@@ -16,6 +16,8 @@
     <label>Upload QR (for bills)</label>
     <input type="file" name="qr" accept="image/*">
     <button class="btn" type="submit">Upload QR</button>
+    &nbsp; &nbsp;
+    <a href="{{ url_for('admin_customers') }}" class="btn">View Customers</a>
 
     {% if session.get('qr_uploaded') %}
         <span style="color: green; font-weight: bold; margin-left: 10px;">
