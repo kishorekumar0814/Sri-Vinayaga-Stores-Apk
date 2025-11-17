@@ -28,3 +28,16 @@ self.addEventListener("fetch", e => {
     caches.match(e.request).then(res => res || fetch(e.request))
   );
 });
+
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installed');
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activated');
+});
+
+self.addEventListener('fetch', (event) => {
+  // Minimal fetch handler; can be enhanced to cache files
+  event.respondWith(fetch(event.request));
+});

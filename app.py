@@ -600,7 +600,7 @@ def create_app():
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     # ----- Customer signup/login/dashboard -----
-    @app.route('/customer/signup', methods=['GET','POST'])
+    @app.route('/customer/signup', methods=['GET', 'POST'])
     def customer_signup():
         if request.method == 'POST':
             name = request.form.get('name')
@@ -608,20 +608,91 @@ def create_app():
             mobile = request.form.get('mobile')
             address = request.form.get('address')
             password = request.form.get('password')
+
             if not (name and email and mobile and password):
                 flash("Please fill all required fields", "danger")
                 return redirect(url_for('customer_signup'))
+
             if Customer.query.filter_by(email=email).first():
                 flash("Email already exists", "danger")
                 return redirect(url_for('customer_signup'))
+
+            # Generate OTP
+            otp = str(random.randint(100000, 999999))
+            session['customer_otp'] = otp
+            session['customer_signup_data'] = {
+                "name": name,
+                "email": email,
+                "mobile": mobile,
+                "address": address,
+                "password": password
+            }
+
+            # SEND OTP EMAIL
+            msg = Message("Customer Signup OTP", recipients=[email])
+            msg.body = f"Your OTP for Customer Signup is: {otp}"
+            mail.send(msg)
+
+            flash("OTP sent to your email", "info")
+            return redirect(url_for("customer_verify_otp"))
+
+        return render_template("customer_signup.html")
+    
+    @app.route('/customer/verify-otp', methods=['GET', 'POST'])
+    def customer_verify_otp():
+        if 'customer_signup_data' not in session:
+            return redirect(url_for('customer_signup'))
+
+        if request.method == 'POST':
+            user_otp = request.form.get('otp')
+            real_otp = session.get('customer_otp')
+
+            if user_otp != real_otp:
+                flash("Invalid OTP! Please try again.", "danger")
+                return redirect(url_for('customer_verify_otp'))
+
+            data = session.get('customer_signup_data')
+
             cuid = generate_cuid()
-            cust = Customer(name=name, email=email, mobile=mobile, address=address,
-                            password_hash=generate_password_hash(password), cuid=cuid)
+            cust = Customer(
+                name=data["name"],
+                email=data["email"],
+                mobile=data["mobile"],
+                address=data["address"],
+                password_hash=generate_password_hash(data["password"]),
+                cuid=cuid
+            )
             db.session.add(cust)
             db.session.commit()
-            flash(f"Account created. Your CUID: {cuid}", "success")
-            return redirect(url_for('customer_login'))
-        return render_template('customer_signup.html')
+
+            # Cleanup
+            session.pop("customer_signup_data")
+            session.pop("customer_otp")
+
+            flash(f"Signup successful! Your CUID: {cuid}", "success")
+            return redirect(url_for("customer_login"))
+
+        return render_template("customer_verify_otp.html")
+    
+    @app.route('/customer/resend-otp')
+    def customer_resend_otp():
+        if 'customer_signup_data' not in session:
+            return redirect(url_for('customer_signup'))
+
+        otp = str(random.randint(100000, 999999))
+        session['customer_otp'] = otp
+
+        email = session['customer_signup_data']['email']
+
+        msg = Message("Resend OTP - Customer Signup", recipients=[email])
+        msg.body = f"Your new OTP is: {otp}"
+        mail.send(msg)
+
+        flash("OTP resent successfully!", "info")
+        return redirect(url_for('customer_verify_otp'))
+
+
+
 
     @app.route('/customer/login', methods=['GET','POST'])
     def customer_login():
