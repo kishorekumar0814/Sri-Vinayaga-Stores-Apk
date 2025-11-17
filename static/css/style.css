@@ -7,12 +7,12 @@
 *{box-sizing:border-box;font-family:Inter, Arial, sans-serif}
 body{margin:0;background:var(--bg);color:#222}
 .layout{display:flex;min-height:100vh}
-.sidenav{width:220px;background:var(--accent);color:white;padding:20px;transition:width .25s}
+/* .sidenav{width:220px;background:var(--accent);color:white;padding:20px;transition:width .25s}
 .sidenav ul{list-style:none;padding:0;margin-top:20px}
 .sidenav li{margin:12px 0}
 .sidenav a{color:white;text-decoration:none}
 .nav-toggle{background:transparent;border:none;color:white;font-size:20px;cursor:pointer}
-.sidenav.collapsed{width:64px}
+.sidenav.collapsed{width:64px} */
 .main{flex:1;display:flex;flex-direction:column}
 .site-header{padding:18px;background:linear-gradient(90deg,#fff,#f2f6f8);border-bottom:1px solid #e2e6ea;position:sticky;top:0;z-index:5}
 .shop-name{text-align:center;margin:0;font-size:22px;color:#16324f}
@@ -103,4 +103,56 @@ a, a:visited, a:hover, a:active, a:focus {
   .main {
       margin-left: 0 !important;
   }
+}
+
+
+/* Side Nav */
+.sidenav {
+    width: 220px;
+    background: var(--accent);
+    color: white;
+    padding: 20px;
+    transition: width 0.25s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Collapsed State */
+.sidenav.collapsed {
+    width: 50px; /* only enough for toggle button */
+    padding-left: 10px;
+}
+
+/* Toggle Button */
+.nav-toggle {
+    background: transparent;
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    display: block;
+}
+
+/* List */
+.sidenav ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    transition: opacity 0.25s ease;
+}
+
+.sidenav.collapsed ul {
+    opacity: 0;   /* hide menu items */
+    pointer-events: none;
+}
+
+/* List Items */
+.sidenav li {
+    margin: 12px 0;
+}
+
+.sidenav a {
+    color: white;
+    text-decoration: none;
+    white-space: nowrap;
 }

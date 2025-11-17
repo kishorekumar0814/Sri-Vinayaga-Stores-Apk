@@ -1,11 +1,11 @@
 // foldable nav
-const side = document.getElementById('sideNav');
-const toggle = document.getElementById('navToggle');
-if(toggle){
-  toggle.addEventListener('click', () => {
-    side.classList.toggle('collapsed');
-  });
-}
+const navToggle = document.getElementById("navToggle");
+const sideNav = document.getElementById("sideNav");
+
+navToggle.addEventListener("click", () => {
+    sideNav.classList.toggle("collapsed");
+});
+
 
 function cardPop(el){
   el.classList.add('pop');
